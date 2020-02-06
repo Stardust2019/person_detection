@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Person-Detection
-"""
 import os
 import time
 from multiprocessing import Process, Queue, Value
@@ -48,39 +44,7 @@ def run_inference_for_single_image(image, sess, tensor_dict):
     return output_dict
 
 
-def is_wearing_hardhat(person_box, hardhat_box, intersection_ratio):
-    xA = max(person_box[0], hardhat_box[0])
-    yA = max(person_box[1], hardhat_box[1])
-    xB = min(person_box[2], hardhat_box[2])
-    yB = min(person_box[3], hardhat_box[3])
-
-    interArea = max(0, xB - xA ) * max(0, yB - yA )
-
-    hardhat_size = (hardhat_box[2] - hardhat_box[0]) * (hardhat_box[3] - hardhat_box[1])
-
-    if interArea / hardhat_size > intersection_ratio:
-        return True
-    else:
-        return False
-
-
-def is_wearing_vest(person_box, vest_box, vest_intersection_ratio):
-    xA = max(person_box[0], vest_box[0])
-    yA = max(person_box[1], vest_box[1])
-    xB = min(person_box[2], vest_box[2])
-    yB = min(person_box[3], vest_box[3])
-
-    interArea = max(0, xB - xA) * max(0, yB - yA)
-
-    vest_size = (vest_box[2] - vest_box[0]) * (vest_box[3] - vest_box[1])
-
-    if interArea / vest_size > vest_intersection_ratio:
-        return True
-    else:
-        return False
-
-
-def is_wearing_hardhat_vest(hardhat_boxes, vest_boxes, person_box):
+def is_person(hardhat_boxes, vest_boxes, person_box):
     hardhat_flag = False
     vest_flag = False
     hardhat_intersection_ratio = 0.6
@@ -137,7 +101,7 @@ def post_message(camera_id, output_dict, image, min_score_thresh):
     persons = []
     for person_box in person_boxes:
         person = dict()
-        person["hardhat"], person["vest"] = is_wearing_hardhat_vest(hardhat_boxes, vest_boxes, person_box)
+        person["hardhat"], person["vest"] = is_person(hardhat_boxes, vest_boxes, person_box)
         persons.append(person)
 
     message["persons"] = persons
@@ -265,7 +229,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                     persons = []
                     for person_box in person_boxes:
                         person = dict()
-                        person["hardhat"], person["vest"] = is_wearing_hardhat_vest(hardhat_boxes, vest_boxes,
+                        person["hardhat"], person["vest"] = is_person(hardhat_boxes, vest_boxes,
                                                                                     person_box)
                         persons.append(person)
 
@@ -309,9 +273,6 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                                                     (30, height - 170), cv2.FONT_HERSHEY_TRIPLEX, 1, (150, 100, 50), 2,
                                                     cv2.LINE_AA)
                         
-                        resized_frame = cv2.putText(resized_frame, "No of people with None: " + str(
-                            len(person_boxes) - (hat_and_vest_count + hat_count + vest_count)), (30, height - 50),
-                                                    cv2.FONT_HERSHEY_TRIPLEX, 1, (150, 100, 50), 2, cv2.LINE_AA)
                         cv2.imshow('ppe', resized_frame)
                         out.write(resized_frame)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -385,7 +346,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                     persons = []
                     for person_box in person_boxes:
                         person = dict()
-                        person["hardhat"], person["vest"] = is_wearing_hardhat_vest(hardhat_boxes, vest_boxes,
+                        person["hardhat"], person["vest"] = is_person(hardhat_boxes, vest_boxes,
                                                                                     person_box)
                         persons.append(person)
 
@@ -430,10 +391,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                                                     (30, height - 170), cv2.FONT_HERSHEY_TRIPLEX, 1, (150, 100, 50),
                                                     2,
                                                     cv2.LINE_AA)
-                      
-                        resized_frame = cv2.putText(resized_frame, "No of people with None: " + str(
-                            len(person_boxes) - (hat_and_vest_count + hat_count + vest_count)), (30, height - 50),
-                                                    cv2.FONT_HERSHEY_TRIPLEX, 1, (150, 100, 50), 2, cv2.LINE_AA)
+                    
                         cv2.imshow('ppe', resized_frame)
                         out.write(resized_frame)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -459,7 +417,9 @@ def main():
         exit(-1)
     print("loading model")
     graph = load_model(frozen_model_path)
-    category_index = {'id': 3, 'name': 'person'}
+    category_index = {1: {'id': 1 , 'name': 'hardhat'},
+                      2: {'id': 2, 'name': 'vest'},
+                      3: {'id': 3, 'name': 'person'}}
     
     print("start message queue")
     run_flag = Value('i', 1)
@@ -474,3 +434,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
