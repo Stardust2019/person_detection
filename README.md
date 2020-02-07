@@ -7,8 +7,14 @@ These instructions will get you a copy of the project up and running on your loc
 **Prerequisites**
 make sure you have following veriosn of the libraries/dependanceis 
 
-`Python Verion3
-Tensorflow`
+`Python 3
+numpy==1.14.5
+tensorflow==1.14.0
+opencv-python
+pillow
+requests
+matplotlib
+imutils'
 
 **Installing**
 `pip3 install -r requirements.txt`
@@ -18,5 +24,5 @@ Tensorflow`
 1. Clone the git repository 
 `git clone https://github.com/Stardust2019/person_detection`
 
-2.Run the code 
+2. Run the code 
 `python3 person_detection.py`
