@@ -1,22 +1,22 @@
 # person_detection
 
-##Getting Started
+**Getting Started**
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
-##Prerequisites
+**Prerequisites**
 make sure you have following veriosn of the libraries/dependanceis 
 
-'''Python Verion3
-Tensorflow'''
+`Python Verion3
+Tensorflow`
 
-##Installing: 
-'''pip3 install -r requirements.txt'''
+**Installing**
+`pip3 install -r requirements.txt`
 
-##Running the tests: 
+**Running the tests**
 
 1. Clone the git repository 
-'''git clone https://github.com/Stardust2019/person_detection'''
+`git clone https://github.com/Stardust2019/person_detection`
 
 2.Run the code 
-'''python3 person_detection.py'''
+`python3 person_detection.py`
