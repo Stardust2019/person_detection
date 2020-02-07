@@ -31,7 +31,7 @@ make sure you have following veriosn of the libraries/dependanceis
 **Running the tests**
 
 1. Clone the git repository 
-`git clone https://github.com/Stardust2019/person_detection`
+`git clone (https://github.com/Stardust2019/person_detection)`
 
 2. Run the code 
 `python3 person_detection.py`
