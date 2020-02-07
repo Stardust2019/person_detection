@@ -5,18 +5,27 @@
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
 **Prerequisites**
+
 make sure you have following veriosn of the libraries/dependanceis 
 
 `Python 3`
+
 `numpy==1.14.5`
+
 `tensorflow==1.14.0`
+
 `opencv-python`
+
 `pillow`
+
 `requests`
+
 `matplotlib`
+
 `imutils`
 
 **Installing**
+
 `pip3 install -r requirements.txt`
 
 **Running the tests**
