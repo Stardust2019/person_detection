@@ -1,3 +1,4 @@
+
 import os
 import time
 from multiprocessing import Process, Queue, Value
@@ -30,12 +31,14 @@ def load_image_into_numpy_array(image):
     (im_width, im_height) = image.size
     return np.array(image.getdata()).reshape((im_height, im_width, 3)).astype(np.uint8)
 
-
+# Definite input and output Tensors for detection_graph
+# Each box represents a part of the image where a particular object was detected
+# Each score represent how level of confidence for each of the objects
+# Score is shown on the result image, together with the class label
 def run_inference_for_single_image(image, sess, tensor_dict):
     image_tensor = tf.get_default_graph().get_tensor_by_name('image_tensor:0')
 
     output_dict = sess.run(tensor_dict, feed_dict={image_tensor: image})
-
     output_dict['num_detections'] = int(output_dict['num_detections'][0])
     output_dict['detection_classes'] = output_dict['detection_classes'][0].astype(np.int64)
     output_dict['detection_boxes'] = output_dict['detection_boxes'][0]
@@ -44,23 +47,23 @@ def run_inference_for_single_image(image, sess, tensor_dict):
     return output_dict
 
 
-def is_person(hardhat_boxes, vest_boxes, person_box):
-    hardhat_flag = False
-    vest_flag = False
-    hardhat_intersection_ratio = 0.6
-    vest_intersection_ratio = 0.6
+def is_person(head_boxes, body_boxes, person_box):
+    head_flag = False
+    body_flag = False
+    head_intersection_ratio = 0.6
+    body_intersection_ratio = 0.6
 
-    for hardhat_box in hardhat_boxes:
-        hardhat_flag = is_wearing_hardhat(person_box, hardhat_box, hardhat_intersection_ratio)
-        if hardhat_flag:
+    for head_box in head_boxes:
+        head_flag = is_wearing_head(person_box, head_box, head_intersection_ratio)
+        if head_flag:
             break
 
-    for vest_box in vest_boxes:
-        vest_flag = is_wearing_vest(person_box, vest_box, vest_intersection_ratio)
-        if vest_flag:
+    for body_box in body_boxes:
+        body_flag = is_wearing_body(person_box, body_box, body_intersection_ratio)
+        if body_flag:
             break
 
-    return hardhat_flag, vest_flag
+    return head_flag, body_flag
 
 
 def post_message_process(run_flag, message_queue):
@@ -72,7 +75,7 @@ def post_message_process(run_flag, message_queue):
         except queue.Empty:
             continue
 
-
+#Taking images and converting it into base64
 def post_message(camera_id, output_dict, image, min_score_thresh):
     message = dict()
     message["timestamp"] = int(time.time() * 1000)
@@ -94,14 +97,14 @@ def post_message(camera_id, output_dict, image, min_score_thresh):
     detection_boxes = output_dict["detection_boxes"][detection_scores]
     detection_classes = output_dict["detection_classes"][detection_scores]
 
-    hardhat_boxes = detection_boxes[np.where(detection_classes == 1)]
-    vest_boxes = detection_boxes[np.where(detection_classes == 2)]
+    head_boxes = detection_boxes[np.where(detection_classes == 1)]
+    body_boxes = detection_boxes[np.where(detection_classes == 2)]
     person_boxes = detection_boxes[np.where(detection_classes == 3)]
 
     persons = []
     for person_box in person_boxes:
         person = dict()
-        person["hardhat"], person["vest"] = is_person(hardhat_boxes, vest_boxes, person_box)
+        person["head"], person["body"] = is_person(head_boxes, body_boxes, person_box)
         persons.append(person)
 
     message["persons"] = persons
@@ -223,13 +226,13 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                     detection_boxes = output_dict["detection_boxes"][detection_scores]
                     detection_classes = output_dict["detection_classes"][detection_scores]
 
-                    hardhat_boxes = detection_boxes[np.where(detection_classes == 1)]
-                    vest_boxes = detection_boxes[np.where(detection_classes == 2)]
+                    head_boxes = detection_boxes[np.where(detection_classes == 1)]
+                    body_boxes = detection_boxes[np.where(detection_classes == 2)]
                     person_boxes = detection_boxes[np.where(detection_classes == 3)]
                     persons = []
                     for person_box in person_boxes:
                         person = dict()
-                        person["hardhat"], person["vest"] = is_person(hardhat_boxes, vest_boxes,
+                        person["head"], person["body"] = is_person(head_boxes, body_boxes,
                                                                                     person_box)
                         persons.append(person)
 
@@ -259,15 +262,15 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                                                    dsize=(config.display_window_width, config.display_window_height))
                         height, width = resized_frame.shape[:2]
                         hat_count = 0
-                        vest_count = 0
-                        hat_and_vest_count = 0
+                        body_count = 0
+                        hat_and_body_count = 0
                         for person in persons:
-                            if person['hardhat'] and person['vest']:
-                                hat_and_vest_count += 1
-                            elif person['hardhat']:
+                            if person['head'] and person['body']:
+                                hat_and_body_count += 1
+                            elif person['head']:
                                 hat_count += 1
-                            elif person['vest']:
-                                vest_count += 1
+                            elif person['body']:
+                                body_count += 1
 
                         resized_frame = cv2.putText(resized_frame, "No of person: " + str(len(person_boxes)),
                                                     (30, height - 170), cv2.FONT_HERSHEY_TRIPLEX, 1, (150, 100, 50), 2,
@@ -340,13 +343,13 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                     detection_boxes = output_dict["detection_boxes"][detection_scores]
                     detection_classes = output_dict["detection_classes"][detection_scores]
 
-                    hardhat_boxes = detection_boxes[np.where(detection_classes == 1)]
-                    vest_boxes = detection_boxes[np.where(detection_classes == 2)]
+                    head_boxes = detection_boxes[np.where(detection_classes == 1)]
+                    body_boxes = detection_boxes[np.where(detection_classes == 2)]
                     person_boxes = detection_boxes[np.where(detection_classes == 3)]
                     persons = []
                     for person_box in person_boxes:
                         person = dict()
-                        person["hardhat"], person["vest"] = is_person(hardhat_boxes, vest_boxes,
+                        person["head"], person["body"] = is_person(head_boxes, body_boxes,
                                                                                     person_box)
                         persons.append(person)
 
@@ -377,15 +380,15 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                                                        config.display_window_width, config.display_window_height))
                         height, width = resized_frame.shape[:2]
                         hat_count = 0
-                        vest_count = 0
-                        hat_and_vest_count = 0
+                        body_count = 0
+                        hat_and_body_count = 0
                         for person in persons:
-                            if person['hardhat'] and person['vest']:
-                                hat_and_vest_count += 1
-                            elif person['hardhat']:
+                            if person['head'] and person['body']:
+                                hat_and_body_count += 1
+                            elif person['head']:
                                 hat_count += 1
-                            elif person['vest']:
-                                vest_count += 1
+                            elif person['body']:
+                                body_count += 1
 
                         resized_frame = cv2.putText(resized_frame, "No of person: " + str(len(person_boxes)),
                                                     (30, height - 170), cv2.FONT_HERSHEY_TRIPLEX, 1, (150, 100, 50),
@@ -404,7 +407,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
     cv2.destroyAllWindows()
 
 def main():
-    parser = argparse.ArgumentParser(description="Hardhat and Vest Detection", add_help=True)
+    parser = argparse.ArgumentParser(description="head and body Detection", add_help=True)
     parser.add_argument("--model_dir", type=str, required=False,default="./model", help="path to model directory")
     parser.add_argument("--video_file_name", type=str, required=False,default="input.mp4", help="path to video file, or camera device, i.e /dev/video1")
     parser.add_argument("--show_video_window", type=int, required=False,default=1, help="the flag for showing the video window, 0 is not dispaly, 1 display")
@@ -417,8 +420,8 @@ def main():
         exit(-1)
     print("loading model")
     graph = load_model(frozen_model_path)
-    category_index = {1: {'id': 1 , 'name': 'hardhat'},
-                      2: {'id': 2, 'name': 'vest'},
+    category_index = {1: {'id': 1 , 'name': 'head'},
+                      2: {'id': 2, 'name': 'body'},
                       3: {'id': 3, 'name': 'person'}}
     
     print("start message queue")
