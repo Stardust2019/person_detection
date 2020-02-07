@@ -14,7 +14,7 @@ make sure you have following veriosn of the libraries/dependanceis
 `pillow`
 `requests`
 `matplotlib`
-`imutils'
+`imutils`
 
 **Installing**
 `pip3 install -r requirements.txt`
