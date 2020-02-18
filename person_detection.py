@@ -35,6 +35,7 @@ def load_image_into_numpy_array(image):
 # Each box represents a part of the image where a particular object was detected
 # Each score represent how level of confidence for each of the objects
 # Score is shown on the result image, together with the class label
+
 def run_inference_for_single_image(image, sess, tensor_dict):
     image_tensor = tf.get_default_graph().get_tensor_by_name('image_tensor:0')
 
@@ -46,8 +47,32 @@ def run_inference_for_single_image(image, sess, tensor_dict):
 
     return output_dict
 
+def is_wearing_per(person_box, per_box, intersection_ratio):
+    xA = max(person_box[0], per_box[0])
+    yA = max(person_box[1], per_box[1])
+    xB = min(person_box[2], per_box[2])
+    yB = min(person_box[3], per_box[3])
 
-def is_person(head_boxes, body_boxes, person_box):
+    interArea = max(0, xB - xA ) * max(0, yB - yA )
+
+    per_size = (per_box[2] - per_box[0]) * (per_box[3] - per_box[1])
+
+    if interArea / per_size > intersection_ratio:
+        return True
+    else:
+        return False
+
+def is_person(person_box):
+    person_flag = False
+    head_intersection_ratio = 0.6
+
+    for per_box in person_boxes:
+        person_flag = is_wearing_head(person_box, per_box, head_intersection_ratio)
+        if head_flag:
+
+           return person_flag
+
+'''def is_person(head_boxes, body_boxes, person_box):
     head_flag = False
     body_flag = False
     head_intersection_ratio = 0.6
@@ -63,7 +88,7 @@ def is_person(head_boxes, body_boxes, person_box):
         if body_flag:
             break
 
-    return head_flag, body_flag
+    return head_flag, body_flag'''
 
 
 def post_message_process(run_flag, message_queue):
@@ -97,14 +122,15 @@ def post_message(camera_id, output_dict, image, min_score_thresh):
     detection_boxes = output_dict["detection_boxes"][detection_scores]
     detection_classes = output_dict["detection_classes"][detection_scores]
 
-    head_boxes = detection_boxes[np.where(detection_classes == 1)]
-    body_boxes = detection_boxes[np.where(detection_classes == 2)]
-    person_boxes = detection_boxes[np.where(detection_classes == 3)]
+    '''head_boxes = detection_boxes[np.where(detection_classes == 1)]
+    body_boxes = detection_boxes[np.where(detection_classes == 2)]'''
+    person_boxes = detection_boxes[np.where(detection_classes == 1)]
 
     persons = []
     for person_box in person_boxes:
         person = dict()
-        person["head"], person["body"] = is_person(head_boxes, body_boxes, person_box)
+        #person["head"], person["body"] = is_person(head_boxes, body_boxes, person_box)
+        person["head"], person["body"] = is_person(person_box)
         persons.append(person)
 
     message["persons"] = persons
@@ -226,14 +252,14 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                     detection_boxes = output_dict["detection_boxes"][detection_scores]
                     detection_classes = output_dict["detection_classes"][detection_scores]
 
-                    head_boxes = detection_boxes[np.where(detection_classes == 1)]
-                    body_boxes = detection_boxes[np.where(detection_classes == 2)]
-                    person_boxes = detection_boxes[np.where(detection_classes == 3)]
+                    '''head_boxes = detection_boxes[np.where(detection_classes == 1)]
+                    body_boxes = detection_boxes[np.where(detection_classes == 2)]'''
+                    person_boxes = detection_boxes[np.where(detection_classes == 1)]
                     persons = []
                     for person_box in person_boxes:
                         person = dict()
-                        person["head"], person["body"] = is_person(head_boxes, body_boxes,
-                                                                                    person_box)
+                        #person["head"], person["body"] = is_person(head_boxes, body_boxes, person_box)
+                        person["head"], person["body"] = is_person(person_box)
                         persons.append(person)
 
                     vis_utils.visualize_boxes_and_labels_on_image_array(
@@ -261,18 +287,18 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                         resized_frame = cv2.resize(frame,
                                                    dsize=(config.display_window_width, config.display_window_height))
                         height, width = resized_frame.shape[:2]
-                        hat_count = 0
+                        head_count = 0
                         body_count = 0
-                        hat_and_body_count = 0
+                        head_and_body_count = 0
                         for person in persons:
                             if person['head'] and person['body']:
-                                hat_and_body_count += 1
+                                head_and_body_count += 1
                             elif person['head']:
-                                hat_count += 1
+                                head_count += 1
                             elif person['body']:
                                 body_count += 1
 
-                        resized_frame = cv2.putText(resized_frame, "No of person: " + str(len(person_boxes)),
+                        resized_frame = cv2.putText(resized_frame, "No of person:" + str(len(person_boxes)),
                                                     (30, height - 170), cv2.FONT_HERSHEY_TRIPLEX, 1, (150, 100, 50), 2,
                                                     cv2.LINE_AA)
                         
@@ -282,9 +308,9 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                             run_flag.value = 0
                             break
 
-                    # k = cv2.waitKey(30) & 0xff
-                    # if k == 27:
-                    #     break
+                        k = cv2.waitKey(30) & 0xff
+                        if k == 27:
+                            break
     else:
         print("[INFO] starting cameras...")
         cap = VideoStream(src=int(camera_id)).start()
@@ -343,14 +369,14 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                     detection_boxes = output_dict["detection_boxes"][detection_scores]
                     detection_classes = output_dict["detection_classes"][detection_scores]
 
-                    head_boxes = detection_boxes[np.where(detection_classes == 1)]
-                    body_boxes = detection_boxes[np.where(detection_classes == 2)]
-                    person_boxes = detection_boxes[np.where(detection_classes == 3)]
+                    '''head_boxes = detection_boxes[np.where(detection_classes == 1)]
+                    body_boxes = detection_boxes[np.where(detection_classes == 2)]'''
+                    person_boxes = detection_boxes[np.where(detection_classes == 1)]
                     persons = []
                     for person_box in person_boxes:
                         person = dict()
-                        person["head"], person["body"] = is_person(head_boxes, body_boxes,
-                                                                                    person_box)
+                        #person["head"], person["body"] = is_person(head_boxes, body_boxes, person_box)
+                        person["head"], person["body"] = is_person(person_box)
                         persons.append(person)
 
                     vis_utils.visualize_boxes_and_labels_on_image_array(
@@ -379,14 +405,14 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                                                    dsize=(
                                                        config.display_window_width, config.display_window_height))
                         height, width = resized_frame.shape[:2]
-                        hat_count = 0
+                        head_count = 0
                         body_count = 0
-                        hat_and_body_count = 0
+                        head_and_body_count = 0
                         for person in persons:
                             if person['head'] and person['body']:
-                                hat_and_body_count += 1
+                                head_and_body_count += 1
                             elif person['head']:
-                                hat_count += 1
+                                head_count += 1
                             elif person['body']:
                                 body_count += 1
 
