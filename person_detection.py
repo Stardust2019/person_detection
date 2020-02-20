@@ -186,7 +186,7 @@ def image_processing(graph, category_index, image_file_name, show_video_window):
 
 def video_processing(graph, category_index, video_file_name, show_video_window, camera_id, run_flag, message_queue):
     if camera_id is None:
-        cap = cv2.VideoCapture(1)
+        cap = cv2.VideoCapture(-1)
         ending_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         input_fps = cap.get(cv2.CAP_PROP_FPS)
         ret, frame = cap.read()
