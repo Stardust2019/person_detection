@@ -2,9 +2,7 @@ import sqlite3
 import os
 import  sys
 
-sqlQuery = """
-insert into user(`img`,`st_time`,`end_time`) values(%s,%s,%s)
-"""
+
 class Image(object):
 
     def __init__(self):
@@ -27,14 +25,14 @@ class Image(object):
         :return: None
         """
 
-        conn = sqlite3.connect("Imagepi.db")
+        conn = sqlite3.connect("Img.db")
         cursor = conn.cursor()
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS my_table 
         (name TEXT,image BLOP)""")
 
-        cursor.execute(""" insert into user(`name`,`image`) values(%s,%s)""",(name,image))
+        cursor.execute(""" insert into my_table(`name`,`image`) values(?,?)""",(name,image))
 
         conn.commit()
         cursor.close()
@@ -61,3 +59,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+   
