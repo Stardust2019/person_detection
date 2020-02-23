@@ -1,12 +1,13 @@
 import sqlite3
 import os
-import  sys
+import sys
 
 
 class Image(object):
 
-    def __init__(self):
+    def __init__(self, dbname="Images.db"):
         self.image_name = []
+        self.dbname = dbname
 
     def load_directory(self, path='/home/hydro/Pictures'):
         """
@@ -25,19 +26,20 @@ class Image(object):
         :return: None
         """
 
-        conn = sqlite3.connect("Img.db")
+        conn = sqlite3.connect(self.dbname)
+
         cursor = conn.cursor()
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS my_table 
-        (name TEXT,image BLOP)""")
+        (name TEXT, Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, image BLOP)""")
 
         cursor.execute(""" insert into my_table(`name`,`image`) values(?,?)""",(name,image))
 
-        conn.commit()
         cursor.close()
-        conn.close()
 
+        conn.commit()
+        conn.close()
 
 def main():
     obj = Image()
@@ -59,4 +61,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-   
+
