@@ -11,6 +11,7 @@ from distutils.version import StrictVersion
 from package import config as config, visualization_utils as vis_utils
 import base64
 from imutils.video import VideoStream
+from sqldatabase import Image
 
 if StrictVersion(tf.__version__) < StrictVersion('1.12.0'):
     raise ImportError('Please upgrade your TensorFlow installation to v1.12.*')
@@ -65,9 +66,8 @@ def is_wearing_per(person_box, per_box, intersection_ratio):
 def is_person(person_box):
     person_flag = False
     head_intersection_ratio = 0.6
-
-    for per_box in person_boxes:
-        person_flag = is_wearing_head(person_box, per_box, head_intersection_ratio)
+    for per_box in person_box:
+        person_flag = is_wearing_per(person_box, per_box, head_intersection_ratio)
         if head_flag:
 
            return person_flag
@@ -186,14 +186,13 @@ def image_processing(graph, category_index, image_file_name, show_video_window):
 
 def video_processing(graph, category_index, video_file_name, show_video_window, camera_id, run_flag, message_queue):
     if camera_id is None:
-        cap = cv2.VideoCapture(-1)
+        cap = cv2.VideoCapture(video_file_name)
         ending_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         input_fps = cap.get(cv2.CAP_PROP_FPS)
         ret, frame = cap.read()
         resized_frame = cv2.resize(frame, dsize=(config.display_window_width, config.display_window_height))
         size = (resized_frame.shape[:2])
         video_output = 'output.mp4'
-        out = cv2.VideoWriter(video_output, cv2.VideoWriter_fourcc(*'DIVX'), 15, size)
         output_fps = input_fps / 1
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(video_output, fourcc, output_fps, (resized_frame.shape[1], resized_frame.shape[0]))
@@ -206,7 +205,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                 cv2.setWindowProperty('ppe', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
 
         if (config.capture_image_width, config.capture_image_height) in config.supported_video_resolution:
-            print("video_processing:", "supported video resoulution")
+            print("video_processing:", "supported video resolution")
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.capture_image_width)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.capture_image_height)
 
@@ -301,7 +300,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                         resized_frame = cv2.putText(resized_frame, "No of person:" + str(len(person_boxes)),
                                                     (30, height - 170), cv2.FONT_HERSHEY_TRIPLEX, 1, (150, 100, 50), 2,
                                                     cv2.LINE_AA)
-                        
+
                         cv2.imshow('ppe', resized_frame)
                         out.write(resized_frame)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -322,7 +321,6 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
         resized_frame = cv2.resize(frame, dsize=(config.display_window_width, config.display_window_height))
         size = (resized_frame.shape[:2])
         video_output = 'output.mp4'
-        out = cv2.VideoWriter(video_output, cv2.VideoWriter_fourcc(*'DIVX'), 15, size)
         output_fps = 30
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(video_output, fourcc, output_fps, (resized_frame.shape[1], resized_frame.shape[0]))
@@ -334,7 +332,6 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
             else:
                 cv2.setWindowProperty('ppe', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
 
-        video_output = "output.mp4"
         with graph.as_default():
             print("video_processing:", "default tensorflow graph")
             ops = tf.get_default_graph().get_operations()
@@ -353,13 +350,13 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                 send_message_time = time.time()
                 frame_counter = 0
                 i = 0  # default is 0
+                dbImage = Image("Img.db")
                 while True:
                     frame = cap.read()
-
                     if frame is None:
                         print("video_processing:", "null frame")
                         break
-
+                    frame_counter += 1
                     resized_frame = cv2.resize(frame, dsize=(640, 360))
 
                     image_expanded = np.expand_dims(resized_frame, axis=0)
@@ -420,8 +417,13 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                                                     (30, height - 170), cv2.FONT_HERSHEY_TRIPLEX, 1, (150, 100, 50),
                                                     2,
                                                     cv2.LINE_AA)
-                    
+
                         cv2.imshow('ppe', resized_frame)
+                        if len(person_boxes) >= 1:
+                            pic_name = "frame" + str(frame_counter) + ".jpg"
+                            cv2.imwrite("./Pictures/" + pic_name , resized_frame)
+                            with open("./Pictures/" + pic_name, 'rb') as f:
+                                dbImage.create_database(name=pic_name, image=f.read())
                         out.write(resized_frame)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             run_flag.value = 0
@@ -429,7 +431,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
 
     print("video_processing:", "releasing video capture")
     out.release()
-    cap.release()
+    #cap.release()
     cv2.destroyAllWindows()
 
 def main():
@@ -456,7 +458,7 @@ def main():
     p = Process(target=post_message_process, args=(run_flag, message_queue))
     p.start()
     print("video processing")
-    video_processing(graph, category_index, './data/input/' + args.video_file_name, args.show_video_window, args.camera_id, run_flag, message_queue)
+    video_processing(graph, category_index, './data/' + args.video_file_name, args.show_video_window, args.camera_id, run_flag, message_queue)
     p.join()
     
     #image_processing(graph, category_index, './examples/002.jpg', True)
