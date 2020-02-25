@@ -11,6 +11,7 @@ from distutils.version import StrictVersion
 from package import config as config, visualization_utils as vis_utils
 import base64
 from imutils.video import VideoStream
+from sqldatabase import Image
 
 if StrictVersion(tf.__version__) < StrictVersion('1.12.0'):
     raise ImportError('Please upgrade your TensorFlow installation to v1.12.*')
