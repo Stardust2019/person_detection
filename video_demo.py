@@ -160,7 +160,7 @@ def image_processing(graph, category_index, image_file_name, show_video_window):
 
 def video_processing(graph, category_index, video_file_name, show_video_window, camera_id, run_flag, message_queue):
     if camera_id is None:
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(0) 
         ending_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         input_fps = cap.get(cv2.CAP_PROP_FPS)
         ret, frame = cap.read()
@@ -203,6 +203,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                 send_message_time = time.time()
                 frame_counter = 0
                 i = 0  # default is 0
+                dbImage = Image("newdata.db")
                 while (cap.isOpened()) and ret is True:
                     ret, frame = cap.read()
 
@@ -279,11 +280,13 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                         cv2.imshow('ppe', resized_frame)
                         if len(person_boxes) >= 1: 
                             print ("detected at: ")
-                            #cv2.imwrite('/home/hydro/person_detection-master/Pictures/snapshot_'+str(i)+'.jpg', resized_frame)
+                            #cv2.imwrite('./Pictures/'+str(i)+'.jpg', resized_frame)
+                            #pic_name = "frame" + str(frame_counter) + ".jpg"
                             pic_name = "frame" + str(frame_counter) + ".jpg"
                             cv2.imwrite("./Pictures/" + pic_name , resized_frame)
-                            #with open("./Pictures/" + pic_name, 'rb') as f:
-                                #dbImage.create_database(name=pic_name, image=f.read())
+    
+                            with open("./Pictures/" + pic_name, 'rb') as f:
+                                dbImage.create_database(name=pic_name, image=f.read())
                         out.write(resized_frame)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             run_flag.value = 0
@@ -335,7 +338,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                 send_message_time = time.time()
                 frame_counter = 0
                 i = 0  # default is 0
-                dbImage = Image("newdata.db")
+                #dbImage = Image("newdata.db")
                 while True:
                     frame = cap.read()
 
@@ -453,5 +456,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
