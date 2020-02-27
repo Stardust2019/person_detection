@@ -161,6 +161,7 @@ def image_processing(graph, category_index, image_file_name, show_video_window):
 
 def video_processing(graph, category_index, video_file_name, show_video_window, camera_id, run_flag, message_queue): 
     firstframe_flag = False
+    last_frame = None
     if camera_id is None:
         cap = cv2.VideoCapture(0) 
         ending_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -413,7 +414,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                                                     cv2.LINE_AA)
                     
                         cv2.imshow('ppe', resized_frame)
-                        last_frame=resized_frame
+                        #last_frame=resized_frame
                         if len(person_boxes) >= 1:
                             last_frame=resized_frame
                         if len(person_boxes) >= 1 & firstframe_flag == False:
