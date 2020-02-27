@@ -163,6 +163,7 @@ def image_processing(graph, category_index, image_file_name, show_video_window):
 def video_processing(graph, category_index, video_file_name, show_video_window, camera_id, run_flag, message_queue): 
     firstframe_flag = False
     person_count = 0
+    last_frame = None
     first_time = None
     last_time = None
     detected_pic_name = str()
@@ -449,6 +450,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
 
                             if firstframe_flag:
                                 last_time = datetime.now()
+                                last_frame = resized_frame
                             else:
                                 firstframe_flag = True
                                 #print ("firstdetected at: ")
@@ -458,6 +460,9 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                         if len(person_boxes) == 0 and firstframe_flag:
                             firstframe_flag = False
                             #print ("lastdetected at: ")
+                            last_detected_pic_name = "lastof_" + detected_pic_name
+                            cv2.imwrite("./Pictures/" + last_detected_pic_name, last_frame)
+
                             with open("./Pictures/" + detected_pic_name, 'rb') as f:
                                 dbImage.create_database(name=detected_pic_name, starttime=first_time, endtime=last_time, image=f.read())
 
