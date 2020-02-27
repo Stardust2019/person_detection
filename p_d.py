@@ -11,6 +11,7 @@ from distutils.version import StrictVersion
 from package import config as config, visualization_utils as vis_utils
 import base64
 from imutils.video import VideoStream
+from sqldatabase import Image
 
 if StrictVersion(tf.__version__) < StrictVersion('1.12.0'):
     raise ImportError('Please upgrade your TensorFlow installation to v1.12.*')
@@ -35,7 +36,6 @@ def load_image_into_numpy_array(image):
 # Each box represents a part of the image where a particular object was detected
 # Each score represent how level of confidence for each of the objects
 # Score is shown on the result image, together with the class label
-
 def run_inference_for_single_image(image, sess, tensor_dict):
     image_tensor = tf.get_default_graph().get_tensor_by_name('image_tensor:0')
 
@@ -47,48 +47,23 @@ def run_inference_for_single_image(image, sess, tensor_dict):
 
     return output_dict
 
-def is_wearing_per(person_box, per_box, intersection_ratio):
-    xA = max(person_box[0], per_box[0])
-    yA = max(person_box[1], per_box[1])
-    xB = min(person_box[2], per_box[2])
-    yB = min(person_box[3], per_box[3])
-
-    interArea = max(0, xB - xA ) * max(0, yB - yA )
-
-    per_size = (per_box[2] - per_box[0]) * (per_box[3] - per_box[1])
-
-    if interArea / per_size > intersection_ratio:
-        return True
-    else:
-        return False
-
-def is_person(person_box):
-    person_flag = False
-    head_intersection_ratio = 0.6
-
-    for per_box in person_boxes:
-        person_flag = is_wearing_head(person_box, per_box, head_intersection_ratio)
-        if head_flag:
-
-           return person_flag
-
-'''def is_person(head_boxes, body_boxes, person_box):
+def is_person(head_boxes, vest_boxes, person_box):
     head_flag = False
-    body_flag = False
+    vest_flag = False
     head_intersection_ratio = 0.6
-    body_intersection_ratio = 0.6
+    vest_intersection_ratio = 0.6
 
     for head_box in head_boxes:
         head_flag = is_wearing_head(person_box, head_box, head_intersection_ratio)
         if head_flag:
             break
 
-    for body_box in body_boxes:
-        body_flag = is_wearing_body(person_box, body_box, body_intersection_ratio)
-        if body_flag:
+    for vest_box in vest_boxes:
+        vest_flag = is_wearing_vest(person_box, vest_box, vest_intersection_ratio)
+        if vest_flag:
             break
 
-    return head_flag, body_flag'''
+    return head_flag, vest_flag
 
 
 def post_message_process(run_flag, message_queue):
@@ -100,7 +75,7 @@ def post_message_process(run_flag, message_queue):
         except queue.Empty:
             continue
 
-#Taking images and converting it into base64
+
 def post_message(camera_id, output_dict, image, min_score_thresh):
     message = dict()
     message["timestamp"] = int(time.time() * 1000)
@@ -122,15 +97,14 @@ def post_message(camera_id, output_dict, image, min_score_thresh):
     detection_boxes = output_dict["detection_boxes"][detection_scores]
     detection_classes = output_dict["detection_classes"][detection_scores]
 
-    '''head_boxes = detection_boxes[np.where(detection_classes == 1)]
-    body_boxes = detection_boxes[np.where(detection_classes == 2)]'''
-    person_boxes = detection_boxes[np.where(detection_classes == 1)]
+    head_boxes = detection_boxes[np.where(detection_classes == 1)]
+    vest_boxes = detection_boxes[np.where(detection_classes == 2)]
+    person_boxes = detection_boxes[np.where(detection_classes == 3)]
 
     persons = []
     for person_box in person_boxes:
         person = dict()
-        #person["head"], person["body"] = is_person(head_boxes, body_boxes, person_box)
-        person["head"], person["body"] = is_person(person_box)
+        person["head"], person["vest"] = is_person(head_boxes, vest_boxes, person_box)
         persons.append(person)
 
     message["persons"] = persons
@@ -187,7 +161,8 @@ def image_processing(graph, category_index, image_file_name, show_video_window):
 def video_processing(graph, category_index, video_file_name, show_video_window, camera_id, run_flag, message_queue):
     if camera_id is None:
         cap = cv2.VideoCapture(0)
-        ending_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        framerate = cap.get(cv2.CAP_PROP_FPS)
+        framecount = 0
         input_fps = cap.get(cv2.CAP_PROP_FPS)
         ret, frame = cap.read()
         resized_frame = cv2.resize(frame, dsize=(config.display_window_width, config.display_window_height))
@@ -229,6 +204,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                 send_message_time = time.time()
                 frame_counter = 0
                 i = 0  # default is 0
+                dbImage = Image("newdata.db")
                 while (cap.isOpened()) and ret is True:
                     ret, frame = cap.read()
 
@@ -252,14 +228,14 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                     detection_boxes = output_dict["detection_boxes"][detection_scores]
                     detection_classes = output_dict["detection_classes"][detection_scores]
 
-                    '''head_boxes = detection_boxes[np.where(detection_classes == 1)]
-                    body_boxes = detection_boxes[np.where(detection_classes == 2)]'''
-                    person_boxes = detection_boxes[np.where(detection_classes == 1)]
+                    head_boxes = detection_boxes[np.where(detection_classes == 1)]
+                    vest_boxes = detection_boxes[np.where(detection_classes == 2)]
+                    person_boxes = detection_boxes[np.where(detection_classes == 3)]
                     persons = []
                     for person_box in person_boxes:
                         person = dict()
-                        #person["head"], person["body"] = is_person(head_boxes, body_boxes, person_box)
-                        person["head"], person["body"] = is_person(person_box)
+                        person["head"], person["vest"] = is_person(head_boxes, vest_boxes,
+                                                                                    person_box)
                         persons.append(person)
 
                     vis_utils.visualize_boxes_and_labels_on_image_array(
@@ -287,30 +263,62 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                         resized_frame = cv2.resize(frame,
                                                    dsize=(config.display_window_width, config.display_window_height))
                         height, width = resized_frame.shape[:2]
-                        head_count = 0
-                        body_count = 0
-                        head_and_body_count = 0
+                        hat_count = 0
+                        vest_count = 0
+                        hat_and_vest_count = 0
                         for person in persons:
-                            if person['head'] and person['body']:
-                                head_and_body_count += 1
+                            if person['head'] and person['vest']:
+                                hat_and_vest_count += 1
                             elif person['head']:
-                                head_count += 1
-                            elif person['body']:
-                                body_count += 1
+                                hat_count += 1
+                            elif person['vest']:
+                                vest_count += 1
 
-                        resized_frame = cv2.putText(resized_frame, "No of person:" + str(len(person_boxes)),
+                        resized_frame = cv2.putText(resized_frame, "No of person: " + str(len(person_boxes)),
                                                     (30, height - 170), cv2.FONT_HERSHEY_TRIPLEX, 1, (150, 100, 50), 2,
                                                     cv2.LINE_AA)
                         
                         cv2.imshow('ppe', resized_frame)
+                        size = (
+                            int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                            int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                            )
+                        
+                        #fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+                        #video_writer = cv2.VideoWriter('CameraCapture.avi', fourcc, 1, size)
+                        
+                        if len(person_boxes) >= 1: 
+                            print ("detected at: ")
+                            while(True):
+                                # Capture frame-by-frame
+                                success, image = cap.read()
+                                framecount += 1
+                                # Check if this is the frame closest to 10 seconds
+                                if framecount == (framerate * 10):
+                                    framecount = 0
+                                    cv2.imshow('image', image)
+                                    print('-----------10----------------')
+                                    video_writer.write(image)
+                                    print('-----------Writing----------------')
+
+                            #time.sleep(30)
+                            #cv2.imwrite('./Pictures/'+str(i)+'.jpg', resized_frame)
+                            #pic_name = "frame" + str(frame_counter) + ".jpg"
+                            pic_name = "frame" + str(frame_counter) + ".jpg"
+                            cv2.imwrite("./Pictures/" + pic_name , resized_frame)
+    
+                            with open("./Pictures/" + pic_name, 'rb') as f:
+                                dbImage.create_database(name=pic_name, image=f.read())
                         out.write(resized_frame)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             run_flag.value = 0
                             break
+                        #if cv2.waitKey(1) & 0xFF == ord('q'):
+                            #break                       
 
-                        k = cv2.waitKey(30) & 0xff
-                        if k == 27:
-                            break
+                     #k = cv2.waitKey(30) & 0xff
+                     #if k == 27:
+                         #break
     else:
         print("[INFO] starting cameras...")
         cap = VideoStream(src=int(camera_id)).start()
@@ -353,13 +361,14 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                 send_message_time = time.time()
                 frame_counter = 0
                 i = 0  # default is 0
+                #dbImage = Image("newdata.db")
                 while True:
                     frame = cap.read()
 
                     if frame is None:
                         print("video_processing:", "null frame")
                         break
-
+                    frame_counter += 1
                     resized_frame = cv2.resize(frame, dsize=(640, 360))
 
                     image_expanded = np.expand_dims(resized_frame, axis=0)
@@ -369,14 +378,14 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                     detection_boxes = output_dict["detection_boxes"][detection_scores]
                     detection_classes = output_dict["detection_classes"][detection_scores]
 
-                    '''head_boxes = detection_boxes[np.where(detection_classes == 1)]
-                    body_boxes = detection_boxes[np.where(detection_classes == 2)]'''
-                    person_boxes = detection_boxes[np.where(detection_classes == 1)]
+                    head_boxes = detection_boxes[np.where(detection_classes == 1)]
+                    vest_boxes = detection_boxes[np.where(detection_classes == 2)]
+                    person_boxes = detection_boxes[np.where(detection_classes == 3)]
                     persons = []
                     for person_box in person_boxes:
                         person = dict()
-                        #person["head"], person["body"] = is_person(head_boxes, body_boxes, person_box)
-                        person["head"], person["body"] = is_person(person_box)
+                        person["head"], person["vest"] = is_person(head_boxes, vest_boxes,
+                                                                                    person_box)
                         persons.append(person)
 
                     vis_utils.visualize_boxes_and_labels_on_image_array(
@@ -405,16 +414,16 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                                                    dsize=(
                                                        config.display_window_width, config.display_window_height))
                         height, width = resized_frame.shape[:2]
-                        head_count = 0
-                        body_count = 0
-                        head_and_body_count = 0
+                        hat_count = 0
+                        vest_count = 0
+                        hat_and_vest_count = 0
                         for person in persons:
-                            if person['head'] and person['body']:
-                                head_and_body_count += 1
+                            if person['head'] and person['vest']:
+                                hat_and_vest_count += 1
                             elif person['head']:
-                                head_count += 1
-                            elif person['body']:
-                                body_count += 1
+                                hat_count += 1
+                            elif person['vest']:
+                                vest_count += 1
 
                         resized_frame = cv2.putText(resized_frame, "No of person: " + str(len(person_boxes)),
                                                     (30, height - 170), cv2.FONT_HERSHEY_TRIPLEX, 1, (150, 100, 50),
@@ -422,6 +431,13 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                                                     cv2.LINE_AA)
                     
                         cv2.imshow('ppe', resized_frame)
+                        if len(person_boxes) >= 1: 
+                            print ("detected at: ")
+                            cv2.imwrite('/home/hydro/person_detection-master/Pictures/snapshot_'+str(i)+'.jpg', resized_frame)
+                            pic_name = "frame" + str(frame_counter) + ".jpg"
+                            cv2.imwrite("/home/hydro/person_detection-master/Pictures" + pic_name , resized_frame)
+                            with open("/home/hydro/person_detection-master/Pictures" + pic_name, 'rb') as f:
+                                dbImage.create_database(name=pic_name, image=f.read())
                         out.write(resized_frame)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             run_flag.value = 0
@@ -429,11 +445,11 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
 
     print("video_processing:", "releasing video capture")
     out.release()
-    cap.release()
+    #cap.release()
     cv2.destroyAllWindows()
 
 def main():
-    parser = argparse.ArgumentParser(description="head and body Detection", add_help=True)
+    parser = argparse.ArgumentParser(description="head and Vest Detection", add_help=True)
     parser.add_argument("--model_dir", type=str, required=False,default="./model", help="path to model directory")
     parser.add_argument("--video_file_name", type=str, required=False,default="input.mp4", help="path to video file, or camera device, i.e /dev/video1")
     parser.add_argument("--show_video_window", type=int, required=False,default=1, help="the flag for showing the video window, 0 is not dispaly, 1 display")
@@ -447,7 +463,7 @@ def main():
     print("loading model")
     graph = load_model(frozen_model_path)
     category_index = {1: {'id': 1 , 'name': 'head'},
-                      2: {'id': 2, 'name': 'body'},
+                      2: {'id': 2, 'name': 'vest'},
                       3: {'id': 3, 'name': 'person'}}
     
     print("start message queue")
