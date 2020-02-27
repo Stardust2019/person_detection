@@ -159,8 +159,7 @@ def image_processing(graph, category_index, image_file_name, show_video_window):
                 cv2.waitKey(5000)
 
 
-def video_processing(graph, category_index, video_file_name, show_video_window, camera_id, run_flag, message_queue):
-    firstframe_flag = False 
+def video_processing(graph, category_index, video_file_name, show_video_window, camera_id, run_flag, message_queue): 
     if camera_id is None:
         cap = cv2.VideoCapture(0) 
         ending_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -205,6 +204,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                 send_message_time = time.time()
                 frame_counter = 0
                 i = 0  # default is 0
+                firstframe_flag = False
                 dbImage = Image("newdata.db")
                 while (cap.isOpened()) and ret is True:
                     ret, frame = cap.read()
