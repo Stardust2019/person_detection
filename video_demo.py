@@ -424,8 +424,8 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                             cv2.imwrite("/home/hydro/person_detection-master/Pictures" + pic_name , resized_frame)
                             with open("/home/hydro/person_detection-master/Pictures" + pic_name, 'rb') as f:
                                 dbImage.create_database(name=pic_name, image=f.read())
-                                if len(person_boxes) == 0 & firstframe_flag == True:
-                                    if len(person_boxes) >= 1 & firstframe_flag == False:
+                                
+                          if len(person_boxes) == 0 & firstframe_flag == True:
                             firstframe_flag = False
                             print ("detected at: ")
                             cv2.imwrite('/home/hydro/person_detection-master/Pictures/snapshot_'+str(i)+'.jpg', last_frame)
