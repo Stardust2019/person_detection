@@ -295,7 +295,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                                 dbImage.create_database(name=pic_name, image=f.read())
                                 
                         if len(person_boxes) == 0 & firstframe_flag == True:
-                            #firstframe_flag = True
+                            firstframe_flag = False
                             print ("detected at: ")
                             cv2.imwrite('./Pictures/'+str(i)+'.jpg', last_frame)
                             pic_name = "lastframe" + str(frame_counter) + ".jpg"
@@ -448,7 +448,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                                 dbImage.create_database(name=pic_name, image=f.read())
                                 
                         if len(person_boxes) == 0 & firstframe_flag == True:
-                            #firstframe_flag = True
+                            firstframe_flag = False
                             print ("detected at: ")
                             cv2.imwrite('./Pictures/'+str(i)+'.jpg', last_frame)
                             pic_name = "lastframe" + str(frame_counter) + ".jpg"
