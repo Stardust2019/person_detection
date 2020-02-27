@@ -161,6 +161,7 @@ def image_processing(graph, category_index, image_file_name, show_video_window):
 
 def video_processing(graph, category_index, video_file_name, show_video_window, camera_id, run_flag, message_queue): 
     firstframe_flag = False
+    person_count = 0
     #last_frame = None
     if camera_id is None:
         cap = cv2.VideoCapture(0) 
@@ -289,7 +290,8 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                             firstframe_flag = True
                             print ("detected at: ")
                             cv2.imwrite('./Pictures/'+str(i)+'.jpg', resized_frame)
-                            pic_name = "firstframe" + str(frame_counter) + ".jpg"
+                            pic_name = "firstframe" + str(frame_counter) + str(person_count)+ ".jpg"
+                            person_count+=1
                             cv2.imwrite("./Pictures/" + pic_name , resized_frame)
                             with open("./Pictures/" + pic_name, 'rb') as f:
                                 dbImage.create_database(name=pic_name, image=f.read())
@@ -298,7 +300,8 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                             firstframe_flag = False
                             print ("detected at: ")
                             cv2.imwrite('./Pictures/'+str(i)+'.jpg', last_frame)
-                            pic_name = "lastframe" + str(frame_counter) + ".jpg"
+                            pic_name = "lastframe" + str(frame_counter) + str(person_count)+ ".jpg"
+                            person_count+=1
                             cv2.imwrite("./Pictures/" + pic_name , last_frame)
                             with open("./Pictures/" + pic_name, 'rb') as f:
                                 dbImage.create_database(name=pic_name, image=f.read()) 
@@ -440,18 +443,20 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                             last_frame=resized_frame
                         if len(person_boxes) >= 1 & firstframe_flag == False:
                             firstframe_flag = True
-                            print ("detected at: ")
+                            print ("firstdetected at: ")
                             cv2.imwrite('./Pictures/'+str(i)+'.jpg', resized_frame)
-                            pic_name = "firstframe" + str(frame_counter) + ".jpg"
+                            pic_name = "firstframe" + str(frame_counter) + str(person_count)+ ".jpg"
+                            person_count+=1
                             cv2.imwrite("./Pictures/" + pic_name , resized_frame)
                             with open("./Pictures/" + pic_name, 'rb') as f:
                                 dbImage.create_database(name=pic_name, image=f.read())
                                 
                         if len(person_boxes) == 0 & firstframe_flag == True:
                             firstframe_flag = False
-                            print ("detected at: ")
+                            print ("lastdetected at: ")
                             cv2.imwrite('./Pictures/'+str(i)+'.jpg', last_frame)
-                            pic_name = "lastframe" + str(frame_counter) + ".jpg"
+                            pic_name = "lastframe" + str(frame_counter) + str(person_count)+ ".jpg"
+                            person_count+=1
                             cv2.imwrite("./Pictures/" + pic_name , last_frame)
                             with open("./Pictures/" + pic_name, 'rb') as f:
                                 dbImage.create_database(name=pic_name, image=f.read()) 
