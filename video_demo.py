@@ -282,7 +282,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                         cv2.imshow('ppe', resized_frame)
                         start_time = datetime.now()
                         if len(person_boxes) >= 1 & firstframe_flag == False:
-                            fistframe_flag == True
+                            firstframe_flag == True
                             print ("detected at: ",start_time)
                             #cv2.imwrite('./Pictures/'+str(i)+'.jpg', resized_frame)
                             #pic_name = "frame" + str(frame_counter) + ".jpg"
@@ -414,7 +414,7 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                     
                         cv2.imshow('ppe', resized_frame)
                         if len(person_boxes) >= 1 & firstframe_flag == False:
-                            firstframe_flag == True
+                            firstframe_flag = True
                             print ("detected at: ")
                             cv2.imwrite('/home/hydro/person_detection-master/Pictures/snapshot_'+str(i)+'.jpg', resized_frame)
                             pic_name = "firstframe" + str(frame_counter) + ".jpg"
