@@ -425,15 +425,6 @@ def video_processing(graph, category_index, video_file_name, show_video_window, 
                             with open("/home/hydro/person_detection-master/Pictures" + pic_name, 'rb') as f:
                                 dbImage.create_database(name=pic_name, image=f.read())
                                 
-                        if len(person_boxes) == 0 & firstframe_flag == True:
-                            #firstframe_flag = False
-                            print ("detected at: ")
-                            cv2.imwrite('/home/hydro/person_detection-master/Pictures/snapshot_'+str(i)+'.jpg', last_frame)
-                            pic_name = "lastframe" + str(frame_counter) + ".jpg"
-                            cv2.imwrite("/home/hydro/person_detection-master/Pictures" + pic_name , last_frame)
-                            with open("/home/hydro/person_detection-master/Pictures" + pic_name, 'rb') as f:
-                                dbImage.create_database(name=pic_name, image=f.read())
-                                
                         out.write(resized_frame)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             run_flag.value = 0
